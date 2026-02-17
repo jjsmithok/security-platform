@@ -1,0 +1,29 @@
+{
+  "checkout_session_completed": {
+    "id": "cs_test_123",
+    "object": "checkout.session",
+    "customer": "cus_123",
+    "subscription": "sub_123",
+    "payment_status": "paid",
+    "status": "complete",
+    "metadata": {
+      "userId": "user_123",
+      "plan": "pro"
+    }
+  },
+  "customer_subscription_updated": {
+    "id": "sub_123",
+    "object": "subscription",
+    "customer": "cus_123",
+    "status": "active",
+    "current_period_start": 1704067200,
+    "current_period_end": 1706659200
+  },
+  "customer_subscription_deleted": {
+    "id": "sub_123",
+    "object": "subscription",
+    "customer": "cus_123",
+    "status": "canceled",
+    "canceled_at": 1704067200
+  }
+}

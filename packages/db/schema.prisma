@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  name            String?
+  mfaEnabled      Boolean   @default(false)
+  mfaSecret       String?
+  emailVerified   Boolean   @default(false)
+  subscriptionId  String?
+  subscriptionStatus String? @default("inactive")
+  stripeCustomerId String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  apiKeys         ApiKey[]
+  sessions        Session[]
+  logs            ApiLog[]
+}
+
+model ApiKey {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  lastUsed    DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ApiLog {
+  id          String   @id @default(cuid())
+  endpoint    String
+  method      String
+  statusCode  Int
+  ip          String?
+  userAgent   String?
+  riskScore   Float?
+  createdAt   DateTime @default(now())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+model RateLimit {
+  id        String   @id @default(cuid())
+  identifier String
+  endpoint  String
+  count     Int      @default(0)
+  windowStart DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([identifier, endpoint])
+}
