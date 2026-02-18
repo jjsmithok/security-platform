@@ -1,0 +1,52 @@
+services:
+  openclaw-gateway:
+    build:
+      context: ${OPENCLAW_REPO_DIR}
+      dockerfile: Dockerfile
+    image: ${OPENCLAW_IMAGE}
+    container_name: ${CONTAINER_NAME_PREFIX}-gateway
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      MINIMAX_API_KEY: ${MINIMAX_API_KEY}
+      OPENCLAW_CONFIG: /home/node/.openclaw/openclaw.json
+    volumes:
+      - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
+      - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
+    ports:
+      - "${GATEWAY_HOST_PORT}:${GATEWAY_CONTAINER_PORT}"
+    init: true
+    restart: unless-stopped
+    user: "0:0"
+    command:
+      [
+        "node",
+        "openclaw.mjs",
+        "gateway",
+        "--bind",
+        "${OPENCLAW_GATEWAY_BIND}",
+        "--port",
+        "${GATEWAY_CONTAINER_PORT}"
+      ]
+
+  openclaw-cli:
+    image: ${OPENCLAW_IMAGE}
+    container_name: ${CONTAINER_NAME_PREFIX}-cli
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      MINIMAX_API_KEY: ${MINIMAX_API_KEY}
+      OPENCLAW_CONFIG: /home/node/.openclaw/openclaw.json
+      BROWSER: echo
+    volumes:
+      - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
+      - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
+    stdin_open: true
+    tty: true
+    init: true
+    user: "0:0"
+    entrypoint: ["node", "openclaw.mjs"]
+    profiles:
+      - cli
