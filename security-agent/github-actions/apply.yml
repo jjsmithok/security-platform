@@ -1,0 +1,87 @@
+name: Security Agent - Terraform Apply
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'security-agent/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        required: true
+        default: 'poc'
+        type: choice
+        options:
+          - poc
+          - sandbox
+          - dev
+          - test
+          - preprod
+          - prod
+
+jobs:
+  terraform:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      AWS_REGION: us-east-1
+      
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+          
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          
+      - name: Terraform Init
+        run: |
+          cd security-agent/terraform
+          terraform init
+          
+      - name: Select TFVars
+        run: |
+          echo "Using environment: ${{ github.event.inputs.environment }}"
+          
+      - name: Terraform Plan
+        run: |
+          cd security-agent/terraform
+          case "${{ github.event.inputs.environment }}" in
+            poc)     terraform plan -var-file=poc.tfvars -out=tfplan ;;
+            sandbox) terraform plan -var-file=sandbox.tfvars -out=tfplan ;;
+            dev)     terraform plan -var-file=dev.tfvars -out=tfplan ;;
+            test)    terraform plan -var-file=test.tfvars -out=tfplan ;;
+            preprod) terraform plan -var-file=preprod.tfvars -out=tfplan ;;
+            prod)    terraform plan -var-file=prod.tfvars -out=tfplan ;;
+            *)       terraform plan -var-file=poc.tfvars -out=tfplan ;;
+          esac
+          
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main'
+        run: |
+          cd security-agent/terraform
+          terraform apply -auto-approve tfplan
+          
+      - name: Create Lambda Package
+        if: github.ref == 'refs/heads/main'
+        run: |
+          cd security-agent/terraform/modules/lambda-remediation
+          zip function.zip handler.py
+          
+      - name: Upload Lambda Function
+        if: github.ref == 'refs/heads/main'
+        run: |
+          cd security-agent/terraform
+          # Update Lambda with new code
+          # This is handled by Terraform on apply
+          echo "Lambda function will be updated on apply"
